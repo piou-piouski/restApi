@@ -1,5 +1,6 @@
 # restApi
 # https://swagger.io/specification/v3.2/#introduction
+# https://editor.swagger.io/
 # Permet d'executer des commandes sur un terminal powershell => Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Unrestricted
 **Auteur :** 26sdc106b.wierzbicki
 
