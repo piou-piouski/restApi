@@ -1,0 +1,155 @@
+{
+  "info": {
+    "name": "restApi - Flow user → token",
+    "description": "Flow en 3 étapes : création d'un user, login, lecture de son token.\nLes étapes se passent les données via les variables de collection :\n- email / password : identifiants générés à l'étape 1\n- userId          : id du user créé (étape 1)\n- token           : JWT reçu au login (étape 2)\n- tokenPayload, tokenExpiresAt : contenu décodé du token (étape 3)\n\nLancer avec Run collection, ou les requêtes une par une dans l'ordre.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://192.168.12.97:3000/api/v1" },
+    { "key": "email", "value": "" },
+    { "key": "password", "value": "UneLonguePhrase#2026" },
+    { "key": "userId", "value": "" },
+    { "key": "token", "value": "" },
+    { "key": "tokenPayload", "value": "" },
+    { "key": "tokenExpiresAt", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Créer le user",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Nouvel email à chaque lancement pour éviter le 409",
+              "pm.collectionVariables.set('email', `user${Date.now()}@defense.fr`);",
+              "// On repart de zéro",
+              "['userId', 'token', 'tokenPayload', 'tokenExpiresAt'].forEach(k => pm.collectionVariables.set(k, ''));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('User créé (201)', () => pm.response.to.have.status(201));",
+              "",
+              "const body = pm.response.json();",
+              "const userId = body.location.split('/').pop();",
+              "pm.collectionVariables.set('userId', userId);",
+              "console.log('userId =', userId, '| email =', pm.collectionVariables.get('email'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/users"
+      }
+    },
+    {
+      "name": "2. Login → récupérer le token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login OK (200)', () => pm.response.to.have.status(200));",
+              "",
+              "const { token } = pm.response.json();",
+              "pm.test('Token reçu', () => pm.expect(token).to.be.a('string').and.have.lengthOf.above(20));",
+              "pm.collectionVariables.set('token', token);",
+              "console.log('token =', token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/auth"
+      }
+    },
+    {
+      "name": "3. Lire le token (GET /users/me)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Profil lu avec le token (200)', () => pm.response.to.have.status(200));",
+              "",
+              "// --- Décodage du JWT (header.payload.signature, encodés en base64url) ---",
+              "const decode = (part) => {",
+              "    const b64 = part.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(part.length / 4) * 4, '=');",
+              "    return JSON.parse(atob(b64));",
+              "};",
+              "const [h, p] = pm.collectionVariables.get('token').split('.');",
+              "const header = decode(h);",
+              "const payload = decode(p);",
+              "const expiresAt = new Date(payload.exp * 1000).toLocaleString('fr-FR');",
+              "",
+              "pm.collectionVariables.set('tokenPayload', JSON.stringify(payload));",
+              "pm.collectionVariables.set('tokenExpiresAt', expiresAt);",
+              "console.log('header =', header, '| payload =', payload);",
+              "",
+              "// --- Vérifications ---",
+              "const { user } = pm.response.json();",
+              "pm.test('Le token appartient au user créé', () => pm.expect(payload.id).to.eql(pm.collectionVariables.get('userId')));",
+              "pm.test('/me renvoie le bon user', () => pm.expect(user.email).to.eql(pm.collectionVariables.get('email')));",
+              "pm.test('Algorithme HS256', () => pm.expect(header.alg).to.eql('HS256'));",
+              "pm.test('Émetteur et audience attendus', () => {",
+              "    pm.expect(payload.iss).to.eql('bobo-api');",
+              "    pm.expect(payload.aud).to.eql('my-bobo-client.fr');",
+              "});",
+              "pm.test('Durée de vie de 15 minutes', () => pm.expect(payload.exp - payload.iat).to.eql(15 * 60));",
+              "",
+              "// --- Affichage dans l'onglet Visualize ---",
+              "pm.visualizer.set(`",
+              "<style>body{font-family:sans-serif;padding:8px} table{border-collapse:collapse} td{border:1px solid #ccc;padding:4px 10px} td:first-child{font-weight:bold}</style>",
+              "<h3>Contenu du token</h3>",
+              "<table>",
+              "  {{#each rows}}<tr><td>{{this.[0]}}</td><td>{{this.[1]}}</td></tr>{{/each}}",
+              "</table>`, {",
+              "    rows: [",
+              "        ['alg', header.alg],",
+              "        ['id (user)', payload.id],",
+              "        ['iss (émetteur)', payload.iss],",
+              "        ['aud (audience)', payload.aud],",
+              "        ['sub (sujet)', payload.sub],",
+              "        ['iat (créé le)', new Date(payload.iat * 1000).toLocaleString('fr-FR')],",
+              "        ['exp (expire le)', expiresAt]",
+              "    ]",
+              "});"
+            ]
+          }
+        }
+      ],
+      "protocolProfileBehavior": { "disableCookies": true },
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+        },
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/users/me"
+      }
+    }
+  ]
+}

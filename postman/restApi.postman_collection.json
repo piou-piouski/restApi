@@ -1,0 +1,241 @@
+{
+  "info": {
+    "name": "restApi - Flow création user",
+    "description": "Flow complet : création d'un utilisateur, cas d'erreur, login puis lecture du profil.\nÀ lancer dans l'ordre avec le Collection Runner (Run collection).\n\nChaque exécution crée un nouvel utilisateur avec un email unique (userXXXX@defense.fr).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://192.168.12.97:3000/api/v1" },
+    { "key": "email", "value": "" },
+    { "key": "password", "value": "UneLonguePhrase#2026" },
+    { "key": "userId", "value": "" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Créer un user (201)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Email unique à chaque exécution pour éviter le 409",
+              "pm.collectionVariables.set('email', `user${Date.now()}@defense.fr`);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Statut 201 Created', () => pm.response.to.have.status(201));",
+              "",
+              "const body = pm.response.json();",
+              "pm.test('Le body contient la location', () => pm.expect(body.location).to.match(/\\/users\\//));",
+              "pm.test('En-tête Location présent', () => pm.response.to.have.header('Location'));",
+              "",
+              "// On garde l'id du user créé pour la suite",
+              "pm.collectionVariables.set('userId', body.location.split('/').pop());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/users"
+      }
+    },
+    {
+      "name": "2. Email déjà utilisé (409)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Statut 409 Conflict', () => pm.response.to.have.status(409));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/users"
+      }
+    },
+    {
+      "name": "3. Email hors defense.fr (422)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Statut 422', () => pm.response.to.have.status(422));",
+              "pm.test('Erreur sur le champ email', () => {",
+              "    const fields = pm.response.json().detail.map(e => e.path);",
+              "    pm.expect(fields).to.include('email');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"jean@gmail.com\",\n  \"password\": \"{{password}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/users"
+      }
+    },
+    {
+      "name": "4. Mot de passe trop faible (422)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Statut 422', () => pm.response.to.have.status(422));",
+              "pm.test('Erreur sur le champ password', () => {",
+              "    const fields = pm.response.json().detail.map(e => e.path);",
+              "    pm.expect(fields).to.include('password');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"faible{{$timestamp}}@defense.fr\",\n  \"password\": \"azerty\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/users"
+      }
+    },
+    {
+      "name": "5. Body vide (422)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Statut 422', () => pm.response.to.have.status(422));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/users"
+      }
+    },
+    {
+      "name": "6. Login du user créé (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Statut 200', () => pm.response.to.have.status(200));",
+              "",
+              "const body = pm.response.json();",
+              "pm.test('Un token est renvoyé', () => pm.expect(body.token).to.be.a('string'));",
+              "pm.collectionVariables.set('token', body.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/auth"
+      }
+    },
+    {
+      "name": "7. Lire mon profil avec le token (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Statut 200', () => pm.response.to.have.status(200));",
+              "",
+              "const { user } = pm.response.json();",
+              "pm.test('C\\'est bien le user créé', () => {",
+              "    pm.expect(user.id).to.eql(pm.collectionVariables.get('userId'));",
+              "    pm.expect(user.email).to.eql(pm.collectionVariables.get('email'));",
+              "});",
+              "pm.test('Le mot de passe n\\'est pas renvoyé', () => pm.expect(user).to.not.have.property('password'));"
+            ]
+          }
+        }
+      ],
+      "protocolProfileBehavior": { "disableCookies": true },
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+        },
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/users/me"
+      }
+    },
+    {
+      "name": "8. Lire mon profil sans token (401)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Statut 401', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ],
+      "protocolProfileBehavior": { "disableCookies": true },
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/users/me"
+      }
+    }
+  ]
+}

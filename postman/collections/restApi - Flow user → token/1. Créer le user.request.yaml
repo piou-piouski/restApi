@@ -1,0 +1,30 @@
+$kind: http-request
+url: "{{baseUrl}}/users"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{email}}",
+      "password": "{{password}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      // Nouvel email à chaque lancement pour éviter le 409
+      pm.collectionVariables.set('email', `user${Date.now()}@defense.fr`);
+      // On repart de zéro
+      ['userId', 'token', 'tokenPayload', 'tokenExpiresAt'].forEach(k => pm.collectionVariables.set(k, ''));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('User créé (201)', () => pm.response.to.have.status(201));
+
+      const body = pm.response.json();
+      const userId = body.location.split('/').pop();
+      pm.collectionVariables.set('userId', userId);
+      console.log('userId =', userId, '| email =', pm.collectionVariables.get('email'));
+    language: text/javascript
+order: 1000

@@ -1,0 +1,14 @@
+# Use this workspace to collaborate
+workspace:
+  id: b2001179-92c1-48a1-856a-3ab23d42751a
+
+localResources:
+  specs:
+    - ../docs/openapi.yaml
+
+# Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
+
+cloudResources:
+  collections:
+    ../postman/collections/restApi - Flow création user: c8859a35-5716-4d3c-9f95-507954dc3ed7
+    ../postman/collections/restApi - Flow user → token: 44f0d143-a5f5-4251-a07e-1fe212d3c9a1

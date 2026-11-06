@@ -1,0 +1,59 @@
+$kind: http-request
+name: 3. Lire le token (GET /users/me)
+url: "{{baseUrl}}/users/me"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{token}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Profil lu avec le token (200)', () => pm.response.to.have.status(200));
+
+      // --- Décodage du JWT (header.payload.signature, encodés en base64url) ---
+      const decode = (part) => {
+          const b64 = part.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(part.length / 4) * 4, '=');
+          return JSON.parse(atob(b64));
+      };
+      const [h, p] = pm.collectionVariables.get('token').split('.');
+      const header = decode(h);
+      const payload = decode(p);
+      const expiresAt = new Date(payload.exp * 1000).toLocaleString('fr-FR');
+
+      pm.collectionVariables.set('tokenPayload', JSON.stringify(payload));
+      pm.collectionVariables.set('tokenExpiresAt', expiresAt);
+      console.log('header =', header, '| payload =', payload);
+
+      // --- Vérifications ---
+      const { user } = pm.response.json();
+      pm.test('Le token appartient au user créé', () => pm.expect(payload.id).to.eql(pm.collectionVariables.get('userId')));
+      pm.test('/me renvoie le bon user', () => pm.expect(user.email).to.eql(pm.collectionVariables.get('email')));
+      pm.test('Algorithme HS256', () => pm.expect(header.alg).to.eql('HS256'));
+      pm.test('Émetteur et audience attendus', () => {
+          pm.expect(payload.iss).to.eql('bobo-api');
+          pm.expect(payload.aud).to.eql('my-bobo-client.fr');
+      });
+      pm.test('Durée de vie de 15 minutes', () => pm.expect(payload.exp - payload.iat).to.eql(15 * 60));
+
+      // --- Affichage dans l'onglet Visualize ---
+      pm.visualizer.set(`
+      <style>body{font-family:sans-serif;padding:8px} table{border-collapse:collapse} td{border:1px solid #ccc;padding:4px 10px} td:first-child{font-weight:bold}</style>
+      <h3>Contenu du token</h3>
+      <table>
+        {{#each rows}}<tr><td>{{this.[0]}}</td><td>{{this.[1]}}</td></tr>{{/each}}
+      </table>`, {
+          rows: [
+              ['alg', header.alg],
+              ['id (user)', payload.id],
+              ['iss (émetteur)', payload.iss],
+              ['aud (audience)', payload.aud],
+              ['sub (sujet)', payload.sub],
+              ['iat (créé le)', new Date(payload.iat * 1000).toLocaleString('fr-FR')],
+              ['exp (expire le)', expiresAt]
+          ]
+      });
+    language: text/javascript
+settings:
+  disableCookies: true
+order: 3000

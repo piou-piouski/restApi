@@ -55,7 +55,11 @@ const usersCtrl = {
         const { id } = req.token ?? {};
 
         try{
-            const user = await User.findByPk(id)
+            const user = await User.findByPk(id, {
+                attributes: {
+                    exclude: ['scopes']
+                }
+            })
 
             if(!user){
                 req.status = 404
@@ -63,7 +67,10 @@ const usersCtrl = {
                 return next()
             }
 
-            return res.status(200).json(user)
+            return res.status(200).json({
+                code: 200,
+                user: user
+            })
 
         }catch(err){
             console.error(err)

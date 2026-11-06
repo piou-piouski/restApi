@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/users"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{email}}",
+      "password": "{{password}}"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('Statut 409 Conflict', () => pm.response.to.have.status(409));
+    language: text/javascript
+order: 2000

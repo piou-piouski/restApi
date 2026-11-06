@@ -1,0 +1,12 @@
+$kind: collection
+description: |-
+  Flow complet : création d'un utilisateur, cas d'erreur, login puis lecture du profil.
+  À lancer dans l'ordre avec le Collection Runner (Run collection).
+
+  Chaque exécution crée un nouvel utilisateur avec un email unique (userXXXX@defense.fr).
+variables:
+  baseUrl: http://192.168.12.97:3000/api/v1
+  email: ""
+  password: UneLonguePhrase#2026
+  userId: ""
+  token: ""

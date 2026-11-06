@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/users"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: "{}"
+scripts:
+  - type: afterResponse
+    code: pm.test('Statut 422', () => pm.response.to.have.status(422));
+    language: text/javascript
+order: 5000

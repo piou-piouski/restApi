@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/auth"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{email}}",
+      "password": "{{password}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Login OK (200)', () => pm.response.to.have.status(200));
+
+      const { token } = pm.response.json();
+      pm.test('Token reçu', () => pm.expect(token).to.be.a('string').and.have.lengthOf.above(20));
+      pm.collectionVariables.set('token', token);
+      console.log('token =', token);
+    language: text/javascript
+order: 2000

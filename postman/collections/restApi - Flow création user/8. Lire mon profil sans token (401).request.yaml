@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/users/me"
+method: GET
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: pm.test('Statut 401', () => pm.response.to.have.status(401));
+    language: text/javascript
+settings:
+  disableCookies: true
+order: 8000

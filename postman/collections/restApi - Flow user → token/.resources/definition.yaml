@@ -1,0 +1,18 @@
+$kind: collection
+description: |-
+  Flow en 3 étapes : création d'un user, login, lecture de son token.
+  Les étapes se passent les données via les variables de collection :
+  - email / password : identifiants générés à l'étape 1
+  - userId          : id du user créé (étape 1)
+  - token           : JWT reçu au login (étape 2)
+  - tokenPayload, tokenExpiresAt : contenu décodé du token (étape 3)
+
+  Lancer avec Run collection, ou les requêtes une par une dans l'ordre.
+variables:
+  baseUrl: http://192.168.12.97:3000/api/v1
+  email: ""
+  password: UneLonguePhrase#2026
+  userId: ""
+  token: ""
+  tokenPayload: ""
+  tokenExpiresAt: ""
