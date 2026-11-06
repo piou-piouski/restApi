@@ -1,0 +1,19 @@
+services:
+  db:
+    container_name: db-container
+    image: postgres:16
+    env_file:
+      - .db.env
+    ports:
+      - "5432:5432"
+    volumes:
+      - data:/var/lib/postgresql/data
+  gui:
+    image: elestio/pgadmin@${PGADMIN_DIGEST}
+    env_file:
+      - .gui.env
+    ports:
+      - "8080:8080"
+
+volumes:
+  data:

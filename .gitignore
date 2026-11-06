@@ -1,0 +1,12 @@
+# Dépendances (réinstallées avec npm install)
+node_modules/
+
+# Secrets : ne jamais les publier
+.env
+.env.*
+*.env
+!.env.example
+!*.env.example
+
+# Logs
+*.log

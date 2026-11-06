@@ -1,0 +1,59 @@
+openapi: 3.2.0
+info: 
+  title: Shop API
+  version: '1.0.0'
+
+servers: 
+  - url: http://{local_ip}:{local_port}/{endpoint_prefix}
+    description: the dev API
+    name: dev
+    variables:
+      local_ip:
+        default: '192.168.12.97'
+      local_port: 
+        enum:
+          - '3000'
+          - '5000'
+        default: '3000'
+      endpoint_prefix:
+        default: api/v1
+
+paths:
+  /users:
+    post:
+      operationId: createUser
+      description: créer un utilisateur
+      responses: 
+        '201':
+          $ref: '#/components/responses/CreateUser'
+
+components:
+  responses: 
+    CreateUser:
+      description: 'Réponse en cas de réussite de création du User'
+      content: 
+        application/json:
+          schema: 
+            $ref: '#/components/schemas/CreateUser'
+          examples: 
+            CreateUser:
+              $ref: '#/components/examples/CreateUser'
+  schemas:
+    CreateUser:
+      type: object
+      properties: 
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        location:
+          type: string
+
+  examples:
+    CreateUser:
+      summary: "Exemple de réponse lors d'une création d'un utilisateur"
+      value: 
+        code: 42
+        message: "Utilisateur ultime ajouté"
+        location: "/users/2112-54d54f-78sd7f"
