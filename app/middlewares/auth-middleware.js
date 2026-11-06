@@ -1,54 +1,47 @@
 const jwt = require('jsonwebtoken');
 
-const verifiyToken = () => {
-    const verifyToken = jwt.verify(
-                    token,
-                    process.env.TOKEN_SECRET,
-                    {
-                        issuer: "bobo-api",
-                        audience: "my-bobo-client.fr",
-                        subject: "bobo-users",
-                        algorithms: ["HS256"]
-                    }
-                )
-    return verifyToken;
+const verifyToken = (token) => jwt.verify(
+    token,
+    process.env.TOKEN_SECRET,
+    {
+        issuer: "bobo-api",
+        audience: "my-bobo-client.fr",
+        subject: "bobo-users",
+        algorithms: ["HS256"]
+    }
+);
+
+// Récupère le token : d'abord l'en-tête "Authorization: Bearer <token>", sinon le cookie "token"
+const getToken = (req) => {
+    const authHeader = req.headers['authorization'];
+    if(authHeader && authHeader.startsWith('Bearer ')){
+        return authHeader.split(' ')[1];
+    }
+    // Le cookie contient directement le token (pas de "Bearer ")
+    return req.cookies?.token;
 }
+
+const authFailed = (req, res, detail) => res.status(401).type("application/problem+json").json({
+    status: 401,
+    title: "Auth failed",
+    detail,
+    instance: req.originalUrl ?? ""
+});
+
 const authMiddleware = (req, res, next) => {
-    
-    if("authorization" in req.headers){
-        const token = req.headers['authorization'].split(" ")[1];
-        if(token){
-            try{
-                req.token = verifiyToken(token);
-                next();
+    const token = getToken(req);
 
-            }catch(err){
-                console.error(err);
-                next(err);
-            }
-        }
+    if(!token){
+        return authFailed(req, res, "Token manquant");
     }
 
-    if("token" in req.cookies){
-        const token = req.cookies['token'].split(" ")[1];
-        if(token){
-            try{
-                req.token = verifiyToken(token);
-                next();
-
-            }catch(err){
-                console.error(err);
-                next(err);
-            }
-        }
+    try{
+        req.token = verifyToken(token);
+        return next();
+    }catch(err){
+        // Token expiré, mal signé, mauvais issuer/audience...
+        return authFailed(req, res, err.name === 'TokenExpiredError' ? "Token expiré" : "Token invalide");
     }
-
-    return req.status(401).type("application/problem+json").json({
-        status: 401,
-        title: "Auth failed",
-        detail: "Description de Auth failed",
-        instance: req.url ?? ""
-    })
 }
 
 module.exports = authMiddleware

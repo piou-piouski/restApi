@@ -51,11 +51,25 @@ const usersCtrl = {
         }
     },
     async read(req, res, next){
+        // req.token est rempli par authMiddleware (payload du JWT)
+        const { id } = req.token ?? {};
 
         try{
+            const user = await User.findByPk(id)
+
+            if(!user){
+                req.status = 404
+                req.message = 'Utilisateur introuvable'
+                return next()
+            }
+
+            return res.status(200).json(user)
 
         }catch(err){
-
+            console.error(err)
+            req.status = 500
+            req.message = 'Erreur serveur'
+            return next()
         }
     },
     async update(req, res, next){

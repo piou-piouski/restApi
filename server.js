@@ -11,6 +11,9 @@ const errorsMiddleWare = require('./app/middlewares/errors-middleware');
 
 const dotenv = require('dotenv');
 const authRoutes = require("./app/routes/auth-routes");
+
+const cookieParser = require('cookie-parser');
+
 const createLimiter = require("./app/middlewares/rate-limit-middleware");
 dotenv.config({
     path: path.join(__dirname, process.env.NODE_ENV == "prod" ? ".env.prod" : ".env")
@@ -21,6 +24,7 @@ app.use(createLimiter());
 app.set("port", process.env.PORT);
 app.set("host", process.env.HOST);
 
+app.use(cookieParser());
 app.use(express.urlencoded({extended: true, limit: '100k'}));
 app.use(express.json({limit: '100k'})); //capable de parser le json (sérialiser/désérialiser)
 app.use(cors()); // à modifier

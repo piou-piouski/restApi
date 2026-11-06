@@ -1,9 +1,11 @@
 const express = require('express');
 const usersCtrl = require('../controllers/users-controller');
 const validationMiddleWare = require('../middlewares/validation-middleware');
+const authMiddleware = require('../middlewares/auth-middleware');
 const usersRoutes = express.Router();
 
 usersRoutes.post('/', [validationMiddleWare.email, validationMiddleWare.password, validationMiddleWare.report], usersCtrl.create)
+usersRoutes.get('/me', [authMiddleware], usersCtrl.read)
 // usersRoutes.route('/')
 //     .post([validationMiddleWare.email, validationMiddleWare.report], usersCtrl.create)
 //     .all((req, res)=>{

@@ -31,7 +31,7 @@ const authCtrl = {
 
             const token = jwt.sign(
                 {
-                    userId: user.id
+                    id: user.id
                 },
                 process.env.TOKEN_SECRET,
                 {
